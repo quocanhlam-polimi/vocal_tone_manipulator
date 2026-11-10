@@ -57,6 +57,17 @@ const FILTERS = [
       },
     ],
   },
+  {
+    type: "pitchshift",
+    title: "Pitch shift",
+    configurations: [
+      {
+        parameter: "semitones",
+        title: "Semitones",
+        defaultValue: 0,
+      },
+    ],
+  },
 ];
 
 export default function Home() {

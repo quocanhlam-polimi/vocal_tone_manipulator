@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.signal import iirpeak, sosfilt
-
+from pedalboard import PitchShift
 
 class AudioFilter:
     def __init__(self, sample_rate: int):
         self.sample_rate = sample_rate
         self.sos = None
         self.zi = None
+        self.pitch_shifter = PitchShift(semitones=0.0)
 
     def configure(self, config: dict):
         filter_type = config.get("filterType")
@@ -26,6 +27,11 @@ class AudioFilter:
         elif filter_type == "highpass":
             self._configure_highpass(
                 frequency=float(config["frequency"]),
+            )
+
+        elif filter_type == "pitchshift":
+            self._configure_pitchshift(
+                semitones=float(config["semitones"]),
             )
 
         else:
@@ -55,6 +61,9 @@ class AudioFilter:
         # Preserve filter state when processing chunks
         self.zi = None
 
+        # reset pitch shift
+        self.pitch_shifter = PitchShift(semitones=0.0)
+
     def _configure_lowpass(self, frequency):
         from scipy.signal import butter
 
@@ -70,6 +79,9 @@ class AudioFilter:
         )
 
         self.zi = None
+
+        # reset pitch shift
+        self.pitch_shifter = PitchShift(semitones=0.0)
 
     def _configure_highpass(self, frequency):
         from scipy.signal import butter
@@ -87,7 +99,37 @@ class AudioFilter:
 
         self.zi = None
 
+        # reset pitch shift
+        self.pitch_shifter = PitchShift(semitones=0.0)
+    
+    def _configure_pitchshift(self, semitones: float):
+        if not -12 <= semitones <= 12:
+            raise ValueError("Pitch shift must be between -12 and +12")
+
+        # Update the existing plugin rather than creating a new one.
+        self.pitch_shifter.semitones = semitones
+
+        # reset filter
+        self.sos = None
+        self.zi = None
+
     def process(self, audio: np.ndarray) -> np.ndarray:
+        # pitch shift
+        # Ensure float32 input
+        # audio = np.asarray(audio, dtype=np.float32)
+
+        # # Pedalboard expects shape: (channels, samples)
+        # audio_2d = audio.reshape(1, -1)
+
+        # # 1. Apply pitch shift
+        # audio_2d = self.pitch_shifter.process(
+        #     audio_2d,
+        #     self.sample_rate,
+        #     reset=False,
+        # )
+
+        # audio = audio_2d[0]
+
         if self.sos is None:
             return audio
 
