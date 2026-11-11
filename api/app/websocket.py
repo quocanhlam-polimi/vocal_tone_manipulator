@@ -18,6 +18,8 @@ async def audio_stream(websocket: WebSocket):
 
     await websocket.accept()
 
+    matlab_service = websocket.app.state.matlab
+
     try:
         while True:
             message = await websocket.receive()
@@ -28,7 +30,7 @@ async def audio_stream(websocket: WebSocket):
 
                 if data["type"] == "init":
                     sample_rate = int(data["sampleRate"])
-                    audio_filter = AudioFilter(sample_rate)
+                    audio_filter = AudioFilter(sample_rate, matlab_service)
 
                 elif data["type"] == "filter_config":
                     if audio_filter is None:
@@ -51,7 +53,7 @@ async def audio_stream(websocket: WebSocket):
                     dtype=np.float32,
                 )
 
-                processed = audio_filter.process(audio)
+                processed = await audio_filter.process(audio)
 
                 await websocket.send_bytes(
                     processed.tobytes()

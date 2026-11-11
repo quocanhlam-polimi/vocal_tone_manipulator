@@ -4,3 +4,4 @@ numpy
 scipy
 python-dotenv
 pedalboard
+matlabengine==26.1.12

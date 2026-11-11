@@ -1,11 +1,29 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.websocket import router as websocket_router
+from app.services.matlab_service import MatlabService
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    matlab_service = MatlabService()
+
+    # Start MATLAB
+    matlab_service.start()
+
+    app.state.matlab = matlab_service
+
+    yield
+
+    # Stop MATLAB when FastAPI shuts down
+    matlab_service.stop()
 
 app = FastAPI(
     title="Audio Processing API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Allow Next.js frontend to communicate with Python

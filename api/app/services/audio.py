@@ -1,16 +1,22 @@
+import asyncio
 import numpy as np
 from scipy.signal import iirpeak, sosfilt
 from pedalboard import PitchShift
+from app.services.matlab_service import MatlabService
 
 class AudioFilter:
-    def __init__(self, sample_rate: int):
+    def __init__(self, sample_rate: int, matlab_service: MatlabService):
         self.sample_rate = sample_rate
         self.sos = None
         self.zi = None
+        self.frequency = 0.0
+        self.filter_type = None
         self.pitch_shifter = PitchShift(semitones=0.0)
+        self.matlab_service = matlab_service
 
     def configure(self, config: dict):
         filter_type = config.get("filterType")
+        self.filter_type = filter_type
 
         if filter_type == "peaking":
             self._configure_peaking(
@@ -26,6 +32,11 @@ class AudioFilter:
 
         elif filter_type == "highpass":
             self._configure_highpass(
+                frequency=float(config["frequency"]),
+            )
+
+        elif filter_type == "lowpass_matlab":
+            self._configure_lowpass_matlab(
                 frequency=float(config["frequency"]),
             )
 
@@ -101,6 +112,10 @@ class AudioFilter:
 
         # reset pitch shift
         self.pitch_shifter = PitchShift(semitones=0.0)
+
+    def _configure_lowpass_matlab(self, frequency: float):
+        self.frequency = frequency
+        self.zi = None
     
     def _configure_pitchshift(self, semitones: float):
         if not -12 <= semitones <= 12:
@@ -113,7 +128,7 @@ class AudioFilter:
         self.sos = None
         self.zi = None
 
-    def process(self, audio: np.ndarray) -> np.ndarray:
+    async def process(self, audio: np.ndarray) -> np.ndarray:
         # pitch shift
         # Ensure float32 input
         # audio = np.asarray(audio, dtype=np.float32)
@@ -129,6 +144,9 @@ class AudioFilter:
         # )
 
         # audio = audio_2d[0]
+
+        if self.filter_type == 'lowpass_matlab':
+            return await self._process_lowpass_matlab(audio)
 
         if self.sos is None:
             return audio
@@ -146,3 +164,13 @@ class AudioFilter:
         )
 
         return output.astype(np.float32)
+    
+    async def _process_lowpass_matlab(self, audio):
+        output, self.zi = await asyncio.to_thread(
+            self.matlab_service.process_audio,
+            audio,
+            self.zi,
+            self.frequency,
+            self.sample_rate,
+        )
+        return output

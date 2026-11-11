@@ -47,6 +47,17 @@ const FILTERS = [
     ],
   },
   {
+    type: "lowpass_matlab",
+    title: "Low-pass filter (MATLAB)",
+    configurations: [
+      {
+        parameter: "frequency",
+        title: "Cut-off Frequency (Hz)",
+        defaultValue: 100,
+      },
+    ],
+  },
+  {
     type: "highpass",
     title: "High-pass filter",
     configurations: [
